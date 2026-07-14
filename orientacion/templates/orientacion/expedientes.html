@@ -1,0 +1,74 @@
+{% extends 'orientacion/base.html' %}
+{% load orientacion_extras %}
+{% block title %}Expedientes · Orientación Psicológica{% endblock %}
+{% block content %}
+  <div class="exp-layout">
+    <div class="card exp-list-card">
+      <h2 class="card-title">Estudiantes</h2>
+      <div class="exp-list">
+        {% for st in lista %}
+          <a class="exp-item{% if seleccionado and st.cedula == seleccionado.cedula %} active{% endif %}" href="{% url 'expedientes_detalle' st.cedula %}">
+            <div class="exp-item-name">{{ st.nombre }}</div>
+            <div class="exp-item-meta">{{ st.n_citas }} citas · {{ st.n_regs }} atenciones</div>
+          </a>
+        {% endfor %}
+      </div>
+      {% if not lista %}<div class="empty-state">No hay estudiantes registrados aún.</div>{% endif %}
+    </div>
+
+    <div>
+      {% if seleccionado %}
+        <div class="card exp-detail-card">
+          <div class="exp-detail-head">
+            <div>
+              <h2>{{ seleccionado.nombre }}</h2>
+              <div class="exp-detail-head-ced">Cédula {{ seleccionado.cedula }}</div>
+            </div>
+          </div>
+          <form method="post" action="{% url 'expedientes_detalle' seleccionado.cedula %}" novalidate>
+            {% csrf_token %}
+            <div class="exp-fields-grid">
+              <div>
+                <label class="field-label" for="{{ form.correo.id_for_label }}">Correo</label>
+                {{ form.correo }}
+              </div>
+              <div>
+                <label class="field-label" for="{{ form.telefono.id_for_label }}">Teléfono</label>
+                {{ form.telefono }}
+              </div>
+            </div>
+            <label class="field-label" for="{{ form.notas.id_for_label }}">Notas del orientador</label>
+            {{ form.notas }}
+            <button type="submit" class="btn btn-primary btn-save-exp">Guardar expediente</button>
+          </form>
+        </div>
+
+        <div class="exp-columns">
+          <div class="card">
+            <h3 class="card-title">Historial de citas</h3>
+            {% for c in historial %}
+              <div class="history-item">
+                <div><div class="history-date">{{ c.fecha|date:"d/m/Y" }} · {{ c.hora }}</div><div class="history-motivo">{{ c.motivo }}</div></div>
+                <span class="{{ c.estado|badge_class }}">{{ c.estado }}</span>
+              </div>
+            {% endfor %}
+            {% if not historial %}<div class="empty-state">Sin citas registradas.</div>{% endif %}
+          </div>
+
+          <div class="card">
+            <h3 class="card-title">Atenciones registradas</h3>
+            {% for r in registros %}
+              <div class="record-item">
+                <div class="record-meta">{{ r.fecha|date:"d/m/Y H:i" }} · {{ r.psicologo.nombre|default:"—" }}</div>
+                <div class="record-desc">{{ r.descripcion }}</div>
+              </div>
+            {% endfor %}
+            {% if not registros %}<div class="empty-state">Sin atenciones registradas.</div>{% endif %}
+          </div>
+        </div>
+      {% else %}
+        <div class="card exp-empty">Selecciona un estudiante para ver su expediente completo.</div>
+      {% endif %}
+    </div>
+  </div>
+{% endblock %}

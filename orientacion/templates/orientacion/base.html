@@ -1,0 +1,75 @@
+{% load static %}<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Orientación Psicológica{% endblock %}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Public+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{% static 'css/style.css' %}">
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <div class="sidebar-brand">
+        <div class="sidebar-logo">OP</div>
+        <div class="sidebar-brand-text">
+          <div class="sidebar-brand-name">Orientación</div>
+          <div class="sidebar-brand-inst">{{ institucion }}</div>
+        </div>
+      </div>
+      <nav class="sidebar-nav" aria-label="Navegación principal">
+        {% for item in nav_items %}
+          <a class="nav-btn{% if item.id == page_id %} active{% endif %}" href="{% url item.url %}">{{ item.label }}</a>
+        {% endfor %}
+      </nav>
+      <div class="sidebar-spacer"></div>
+      <div class="sidebar-footer">
+        <div class="sidebar-user">
+          <div class="sidebar-avatar">{{ user.nombre|default:"?"|slice:":1"|upper }}</div>
+          <div class="sidebar-user-text">
+            <div class="sidebar-user-name">{{ user.nombre }}</div>
+            <div class="sidebar-user-role">{{ user.rol|title }}</div>
+          </div>
+        </div>
+        <form method="post" action="{% url 'logout' %}">
+          {% csrf_token %}
+          <button type="submit" class="btn-logout">Cerrar sesión</button>
+        </form>
+      </div>
+    </aside>
+
+    <main class="main">
+      <header class="page-header">
+        <div class="page-eyebrow">{{ institucion }}</div>
+        <h1 class="page-title">{{ page_title }}</h1>
+        <p class="page-sub">{{ page_sub }}</p>
+      </header>
+
+      <section class="stats-grid" aria-label="Resumen">
+        {% for s in stats %}
+          <div class="stat-card">
+            <div class="stat-label">{{ s.label }}</div>
+            <div class="stat-value">{{ s.value }}</div>
+          </div>
+        {% endfor %}
+      </section>
+
+      {% block content %}{% endblock %}
+    </main>
+  </div>
+
+  <div class="toast-container" id="toast-container" aria-live="polite">
+    {% for message in messages %}
+      <div class="toast {% if message.tags == 'error' %}toast-error{% elif message.tags == 'warning' %}toast-warn{% else %}toast-ok{% endif %}">{{ message }}</div>
+    {% endfor %}
+  </div>
+  <script>
+    document.querySelectorAll('.toast').forEach(function (el) {
+      setTimeout(function () { el.remove(); }, 4200);
+    });
+  </script>
+  {% block extra_js %}{% endblock %}
+</body>
+</html>

@@ -1,0 +1,81 @@
+{% extends 'orientacion/base.html' %}
+{% load orientacion_extras %}
+{% block title %}Calendario · Orientación Psicológica{% endblock %}
+{% block content %}
+  <div class="card section-spaced">
+    <div class="week-toolbar">
+      <div>
+        <h2 class="card-title">Semana laboral</h2>
+        <p class="card-sub-flat">Haz clic en una celda libre para ofrecer disponibilidad, o en una disponible para quitarla.</p>
+      </div>
+      <div class="week-toolbar-actions">
+        <form method="get" action="{% url 'calendario' %}" style="display:inline-flex;gap:8px;align-items:center;">
+          <input type="date" name="semana" class="week-date-input" value="{{ semana|date:'Y-m-d' }}" onchange="this.form.submit()">
+        </form>
+        <a class="btn-nav-arrow" href="{% url 'calendario' %}?semana={{ semana_prev|date:'Y-m-d' }}">‹ Anterior</a>
+        <a class="btn-nav-arrow" href="{% url 'calendario' %}?semana={{ semana_next|date:'Y-m-d' }}">Siguiente ›</a>
+      </div>
+    </div>
+    <div class="week-grid">
+      <div class="week-grid-head">
+        <div class="grid-hour-label">Hora</div>
+        <div class="grid-days-slot">
+          {% for d in dias %}
+            <div class="grid-day-head"><div class="grid-day-name">{{ d|date:"D" }}</div><div class="grid-day-date">{{ d|date:"d/m/Y" }}</div></div>
+          {% endfor %}
+        </div>
+      </div>
+      {% for fila in filas %}
+        <div class="week-grid-row">
+          <div class="grid-hour-cell">{{ fila.hora }}</div>
+          {% for celda in fila.celdas %}
+            {% if celda.ocupada %}
+              <div class="slot-cell is-occupied">Ocupada<small>Cita</small></div>
+            {% elif celda.disponible %}
+              <form method="post" action="{% url 'calendario_toggle' %}" onsubmit="return confirm('¿Quitar la disponibilidad del {{ celda.fecha|date:'d/m/Y' }} a las {{ celda.hora }}?');">
+                {% csrf_token %}
+                <input type="hidden" name="fecha" value="{{ celda.fecha|date:'Y-m-d' }}">
+                <input type="hidden" name="hora" value="{{ celda.hora }}">
+                <input type="hidden" name="semana" value="{{ semana|date:'Y-m-d' }}">
+                <button type="submit" class="slot-cell is-available" style="width:100%;border:none;cursor:pointer;">Disponible<small>Quitar</small></button>
+              </form>
+            {% else %}
+              <form method="post" action="{% url 'calendario_toggle' %}" onsubmit="return confirm('¿Ofrecer disponibilidad el {{ celda.fecha|date:'d/m/Y' }} a las {{ celda.hora }}?');">
+                {% csrf_token %}
+                <input type="hidden" name="fecha" value="{{ celda.fecha|date:'Y-m-d' }}">
+                <input type="hidden" name="hora" value="{{ celda.hora }}">
+                <input type="hidden" name="semana" value="{{ semana|date:'Y-m-d' }}">
+                <button type="submit" class="slot-cell is-free" style="width:100%;border:none;cursor:pointer;">Libre<small>Ofrecer</small></button>
+              </form>
+            {% endif %}
+          {% endfor %}
+        </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <div class="card">
+    <h2 class="card-title-tight">Disponibilidad guardada</h2>
+    <div class="table-wrap">
+      <table class="data-table">
+        <thead><tr><th>Fecha</th><th>Hora</th><th>Estado</th><th>Acción</th></tr></thead>
+        <tbody>
+          {% for d in disp_list %}
+            <tr>
+              <td>{{ d.fecha|date:"d/m/Y" }}</td>
+              <td>{{ d.hora }}</td>
+              <td><span class="{{ d.ocupada|yesno:'Ocupada,Disponible'|badge_class }}">{{ d.ocupada|yesno:'Ocupada,Disponible' }}</span></td>
+              <td>
+                <form method="post" action="{% url 'calendario_eliminar' d.obj.pk %}" onsubmit="return confirm('¿Quitar la disponibilidad del {{ d.fecha|date:'d/m/Y' }} a las {{ d.hora }}?');">
+                  {% csrf_token %}
+                  <button type="submit" class="btn-sm btn-sm-danger"{% if d.ocupada %} disabled{% endif %}>Eliminar</button>
+                </form>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% if not disp_list %}<div class="empty-state">No hay disponibilidad guardada.</div>{% endif %}
+    </div>
+  </div>
+{% endblock %}

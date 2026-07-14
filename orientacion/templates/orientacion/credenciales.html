@@ -1,0 +1,52 @@
+{% extends 'orientacion/base.html' %}
+{% load orientacion_extras %}
+{% block title %}Credenciales · Orientación Psicológica{% endblock %}
+{% block content %}
+  <div class="agenda-grid">
+    <form class="card" method="post" action="{% url 'credenciales' %}" novalidate>
+      {% csrf_token %}
+      <h2 class="card-title">Registrar psicólogo</h2>
+      <p class="card-sub">La contraseña se genera automáticamente. Los estudiantes crean su propia cuenta desde el inicio de sesión.</p>
+
+      <label class="field-label" for="{{ form.nombre.id_for_label }}">Nombre</label>
+      {{ form.nombre }}
+      <label class="field-label" for="{{ form.cedula.id_for_label }}">Cédula</label>
+      {{ form.cedula }}
+      <label class="field-label" for="{{ form.correo.id_for_label }}">Correo</label>
+      {{ form.correo }}
+
+      {% if form.errors %}
+        <p style="color:var(--dang);font-size:13px;margin-top:8px;">
+          {% for field in form %}{% for error in field.errors %}{{ error }} {% endfor %}{% endfor %}
+        </p>
+      {% endif %}
+
+      <button type="submit" class="btn btn-primary btn-block">Generar credenciales</button>
+    </form>
+
+    <div class="card">
+      <h2 class="card-title-tight">Personal registrado</h2>
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead><tr><th>Nombre</th><th>Cédula</th><th>Rol</th><th>Correo</th><th></th></tr></thead>
+          <tbody>
+            {% for u in staff %}
+              <tr>
+                <td class="cell-strong">{{ u.nombre }}</td>
+                <td>{{ u.cedula }}</td>
+                <td><span class="{{ u.rol|rol_badge_class }}">{{ u.rol|rol_label }}</span></td>
+                <td class="cell-muted">{{ u.correo|default:"—" }}</td>
+                <td>
+                  <form method="post" action="{% url 'credenciales_eliminar' u.pk %}" onsubmit="return confirm('¿Eliminar este usuario? Esta acción no se puede deshacer.');">
+                    {% csrf_token %}
+                    <button type="submit" class="btn-sm btn-sm-danger"{% if u.pk == user.pk %} disabled{% endif %}>Eliminar</button>
+                  </form>
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+{% endblock %}

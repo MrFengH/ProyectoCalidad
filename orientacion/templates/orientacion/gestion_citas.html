@@ -1,0 +1,42 @@
+{% extends 'orientacion/base.html' %}
+{% load orientacion_extras %}
+{% block title %}Gestionar citas · Orientación Psicológica{% endblock %}
+{% block content %}
+  <div class="card">
+    <h2 class="card-title">Citas registradas</h2>
+    <p class="card-sub">Marca una cita como atendida para documentar la atención y cerrar su ciclo.</p>
+    <div class="table-wrap">
+      <table class="data-table">
+        <thead>
+          <tr><th>Estudiante</th><th>Cédula</th><th>Fecha</th><th>Hora</th><th>Motivo</th><th>Estado</th><th>Acciones</th></tr>
+        </thead>
+        <tbody>
+          {% for c in citas %}
+            <tr>
+              <td class="cell-strong">{{ c.estudiante.nombre }}</td>
+              <td>{{ c.estudiante.cedula }}</td>
+              <td>{{ c.fecha|date:"d/m/Y" }}</td>
+              <td>{{ c.hora }}</td>
+              <td class="cell-muted cell-clip-220">{{ c.motivo }}</td>
+              <td><span class="{{ c.estado|badge_class }}">{{ c.estado }}</span></td>
+              <td>
+                {% if c.estado == 'Agendada' %}
+                  <div class="action-buttons">
+                    <a class="btn-sm btn-sm-ok" href="{% url 'gestion_citas_cerrar' c.pk %}">Atender</a>
+                    <form method="post" action="{% url 'gestion_citas_cancelar' c.pk %}" onsubmit="return confirm('¿Cancelar esta cita?');">
+                      {% csrf_token %}
+                      <button type="submit" class="btn-sm btn-sm-neutral">Cancelar</button>
+                    </form>
+                  </div>
+                {% else %}
+                  <span class="muted-dash">—</span>
+                {% endif %}
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% if not citas %}<div class="empty-state">No hay citas registradas.</div>{% endif %}
+    </div>
+  </div>
+{% endblock %}

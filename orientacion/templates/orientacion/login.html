@@ -1,0 +1,92 @@
+{% load static %}<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Iniciar sesión · Orientación Psicológica</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Public+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{% static 'css/style.css' %}">
+</head>
+<body>
+  <div class="auth-page">
+    <div class="auth-hero">
+      <div class="auth-hero-brand">
+        <div class="brand-mark">OP</div>
+        <div class="auth-hero-brand-name">Orientación Psicológica</div>
+      </div>
+      <div>
+        <h1 class="auth-hero-title">Acompañamiento estudiantil, ordenado y confidencial.</h1>
+        <p class="auth-hero-desc">Agenda citas, gestiona la disponibilidad del orientador y mantén el expediente de cada estudiante en un solo lugar.</p>
+      </div>
+      <div class="auth-hero-foot">UTP · Sistema interno</div>
+    </div>
+
+    <div class="auth-panel">
+      <div class="auth-card">
+        <div id="login-view"{% if show_register %} hidden{% endif %}>
+          <h2>Iniciar sesión</h2>
+          <p>Ingresa con la cédula y contraseña de tu cuenta.</p>
+          <form method="post" action="{% url 'login' %}" novalidate>
+            {% csrf_token %}
+            <label class="field-label" for="{{ form.username.id_for_label }}">Cédula</label>
+            {{ form.username }}
+            <label class="field-label" for="{{ form.password.id_for_label }}">Contraseña</label>
+            {{ form.password }}
+            {% if form.non_field_errors %}
+              <p style="color:var(--dang);font-size:13px;margin:10px 0 0;">{{ form.non_field_errors|join:" " }}</p>
+            {% endif %}
+            <button type="submit" class="btn btn-primary btn-block">Entrar</button>
+          </form>
+          <div class="auth-switch">¿Eres estudiante? <a href="#" id="link-go-register">Crea tu cuenta</a></div>
+          <div class="demo-accounts">
+            <div class="demo-accounts-title">Cuentas de prueba</div>
+            Directora — 8-100-100 · dir123<br>
+            Psicólogo — 8-200-200 · psi123<br>
+            Estudiante — 8-300-300 · est123
+          </div>
+        </div>
+
+        <div id="register-view"{% if not show_register %} hidden{% endif %}>
+          <h2>Crear cuenta de estudiante</h2>
+          <p>Regístrate para poder agendar tus citas de orientación.</p>
+          <form method="post" action="{% url 'registro' %}" novalidate>
+            {% csrf_token %}
+            <label class="field-label" for="{{ register_form.nombre.id_for_label }}">Nombre completo</label>
+            {{ register_form.nombre }}
+            <label class="field-label" for="{{ register_form.cedula.id_for_label }}">Cédula</label>
+            {{ register_form.cedula }}
+            <label class="field-label" for="{{ register_form.correo.id_for_label }}">Correo</label>
+            {{ register_form.correo }}
+            <label class="field-label" for="{{ register_form.password.id_for_label }}">Contraseña</label>
+            {{ register_form.password }}
+            {% if register_form.errors %}
+              <p style="color:var(--dang);font-size:13px;margin:10px 0 0;">
+                {% for field in register_form %}{% for error in field.errors %}{{ error }} {% endfor %}{% endfor %}
+              </p>
+            {% endif %}
+            <button type="submit" class="btn btn-primary btn-block">Crear cuenta</button>
+          </form>
+          <div class="auth-switch">¿Ya tienes cuenta? <a href="#" id="link-back-login">Inicia sesión</a></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast-container" id="toast-container" aria-live="polite">
+    {% for message in messages %}
+      <div class="toast {% if message.tags == 'error' %}toast-error{% elif message.tags == 'warning' %}toast-warn{% else %}toast-ok{% endif %}">{{ message }}</div>
+    {% endfor %}
+  </div>
+  <script>
+    document.querySelectorAll('.toast').forEach(function (el) { setTimeout(function () { el.remove(); }, 4200); });
+    var loginView = document.getElementById('login-view');
+    var registerView = document.getElementById('register-view');
+    var goRegister = document.getElementById('link-go-register');
+    var backLogin = document.getElementById('link-back-login');
+    if (goRegister) goRegister.addEventListener('click', function (e) { e.preventDefault(); loginView.hidden = true; registerView.hidden = false; });
+    if (backLogin) backLogin.addEventListener('click', function (e) { e.preventDefault(); registerView.hidden = true; loginView.hidden = false; });
+  </script>
+</body>
+</html>

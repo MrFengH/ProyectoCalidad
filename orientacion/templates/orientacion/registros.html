@@ -1,0 +1,49 @@
+{% extends 'orientacion/base.html' %}
+{% block title %}Registros de atención · Orientación Psicológica{% endblock %}
+{% block content %}
+  <div class="agenda-grid">
+    <form class="card" method="post" action="{% if editando %}{% url 'registros' %}?editar={{ editando.pk }}{% else %}{% url 'registros' %}{% endif %}" novalidate>
+      {% csrf_token %}
+      {% if editando %}<input type="hidden" name="editar_id" value="{{ editando.pk }}">{% endif %}
+      <h2 class="card-title">{% if editando %}Editar registro{% else %}Nuevo registro{% endif %}</h2>
+      <p class="card-sub">Documenta una atención. Las citas marcadas como atendidas generan su registro automáticamente.</p>
+
+      <label class="field-label" for="{{ form.estudiante.id_for_label }}">Estudiante</label>
+      {{ form.estudiante }}
+      <label class="field-label" for="{{ form.cedula.id_for_label }}">Cédula</label>
+      {{ form.cedula }}
+      <label class="field-label" for="{{ form.descripcion.id_for_label }}">Descripción de la atención</label>
+      {{ form.descripcion }}
+
+      {% if form.errors %}
+        <p style="color:var(--dang);font-size:13px;margin-top:8px;">Complete el registro de atención.</p>
+      {% endif %}
+
+      <button type="submit" class="btn btn-primary btn-block">{% if editando %}Actualizar registro{% else %}Guardar registro{% endif %}</button>
+      {% if editando %}<a href="{% url 'registros' %}" class="btn btn-ghost btn-block btn-cancel-edit">Cancelar edición</a>{% endif %}
+    </form>
+
+    <div class="card">
+      <h2 class="card-title-tight">Historial de atenciones</h2>
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead><tr><th>Estudiante</th><th>Cédula</th><th>Fecha</th><th>Descripción</th><th>Acciones</th></tr></thead>
+          <tbody>
+            {% for r in registros %}
+              <tr>
+                <td class="cell-strong">{{ r.estudiante.nombre }}</td>
+                <td>{{ r.estudiante.cedula }}</td>
+                <td class="cell-muted">{{ r.fecha|date:"d/m/Y H:i" }}</td>
+                <td class="cell-clip-260">{{ r.descripcion }}</td>
+                <td><div class="action-buttons">
+                  <a class="btn-sm btn-sm-neutral" href="{% url 'registros' %}?editar={{ r.pk }}">Editar</a>
+                </div></td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+        {% if not registros %}<div class="empty-state">No hay atenciones registradas.</div>{% endif %}
+      </div>
+    </div>
+  </div>
+{% endblock %}

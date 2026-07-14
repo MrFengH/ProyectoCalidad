@@ -1,0 +1,43 @@
+{% extends 'orientacion/base.html' %}
+{% load orientacion_extras %}
+{% block title %}Inicio · Orientación Psicológica{% endblock %}
+{% block content %}
+  <section class="hero-banner">
+    <div class="hero-date">{{ hoy|date:"l j \d\e F \d\e Y" }}</div>
+    <h2 class="hero-greeting">{{ saludo }}</h2>
+    <p class="hero-message">{{ mensaje }}</p>
+  </section>
+
+  <div class="inicio-grid">
+    <div class="card">
+      <h3 class="card-title">Accesos rápidos</h3>
+      <div class="shortcuts-grid">
+        {% for item in shortcuts %}
+          <a class="shortcut-btn" href="{% url item.url %}">
+            <div class="shortcut-label">{{ item.label }}</div>
+            <div class="shortcut-desc">{{ item.desc }}</div>
+          </a>
+        {% endfor %}
+      </div>
+    </div>
+
+    <div class="card">
+      <h3 class="card-title">Próximas citas</h3>
+      {% if proximas %}
+        <div>
+          {% for c in proximas %}
+            <div class="upcoming-item">
+              <div>
+                <div class="upcoming-name">{{ c.estudiante.nombre }}</div>
+                <div class="upcoming-meta">{{ c.fecha|date:"d/m/Y" }} · {{ c.hora }}</div>
+              </div>
+              <span class="{{ c.estado|badge_class }}">{{ c.estado }}</span>
+            </div>
+          {% endfor %}
+        </div>
+      {% else %}
+        <div class="empty-state">No hay citas próximas.</div>
+      {% endif %}
+    </div>
+  </div>
+{% endblock %}

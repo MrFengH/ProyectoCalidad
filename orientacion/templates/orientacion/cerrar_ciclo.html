@@ -1,0 +1,23 @@
+{% extends 'orientacion/base.html' %}
+{% block title %}Cerrar ciclo de atención · Orientación Psicológica{% endblock %}
+{% block content %}
+  <div class="modal-overlay" style="position:static;background:none;padding:0;">
+    <div class="modal-box" style="animation:none;">
+      <h2 class="modal-title">Cerrar ciclo de atención</h2>
+      <p class="modal-line">Estudiante: <b class="text-ink">{{ cita.estudiante.nombre }}</b></p>
+      <p class="modal-line-sub">Motivo de la cita: {{ cita.motivo|default:"Sin motivo" }}</p>
+      <form method="post" action="{% url 'gestion_citas_cerrar' cita.pk %}">
+        {% csrf_token %}
+        <label class="field-label" for="{{ form.descripcion.id_for_label }}">Descripción de la atención brindada</label>
+        {{ form.descripcion }}
+        {% if form.descripcion.errors %}
+          <p style="color:var(--dang);font-size:13px;margin-top:6px;">Describa la atención brindada.</p>
+        {% endif %}
+        <div class="modal-actions">
+          <button type="submit" class="btn-confirm-ok ok">Confirmar atención</button>
+          <a href="{% url 'gestion_citas' %}" class="btn-cancel-modal">Cancelar</a>
+        </div>
+      </form>
+    </div>
+  </div>
+{% endblock %}

@@ -1,0 +1,237 @@
+{% extends 'orientacion/base.html' %}
+{% load orientacion_extras %}
+{% block title %}Agendar cita · Orientación Psicológica{% endblock %}
+{% block content %}
+  <div class="agenda-grid">
+    <form class="card" method="post" action="{% url 'agenda' %}" novalidate id="form-agendar">
+      {% csrf_token %}
+      <h2 class="card-title">Nueva cita</h2>
+      <p class="card-sub">{% if is_est %}Selecciona una fecha y hora disponible.{% else %}Registra la cita en un horario habilitado.{% endif %}</p>
+
+      {% if is_est %}
+        <div class="student-box">
+          <div class="student-box-label">Estudiante</div>
+          <div class="student-box-name">{{ user.nombre }}</div>
+          <div class="student-box-ced">Cédula {{ user.cedula }}</div>
+        </div>
+      {% else %}
+        <label class="field-label" for="{{ form.nombre.id_for_label }}">Nombre del estudiante</label>
+        {{ form.nombre }}
+        <label class="field-label" for="{{ form.cedula.id_for_label }}">Cédula</label>
+        {{ form.cedula }}
+      {% endif %}
+
+      <div class="picker-toggle-row">
+        <label class="field-label" for="{{ form.fecha.id_for_label }}">Fecha disponible</label>
+        <button type="button" class="btn-ghost-sm" id="btn-toggle-picker">Abrir calendario</button>
+      </div>
+      {{ form.fecha }}
+
+      <label class="field-label" for="{{ form.hora.id_for_label }}">Hora</label>
+      {{ form.hora }}
+
+      <div class="picker-panel" id="picker-panel" hidden>
+        <div class="picker-panel-head">
+          <div class="picker-panel-head-title">Elige un bloque disponible</div>
+          <div class="picker-week-controls">
+            <input type="date" id="pickSemana" class="date-input">
+            <button type="button" class="btn-mini-arrow" id="btn-pick-prev">‹</button>
+            <button type="button" class="btn-mini-arrow" id="btn-pick-next">›</button>
+          </div>
+        </div>
+        <div class="picker-grid">
+          <div class="picker-grid-head">
+            <div class="grid-hour-label">Hora</div>
+            <div id="picker-days" class="grid-days-slot"></div>
+          </div>
+          <div id="picker-rows"></div>
+        </div>
+        <div class="picker-selected-label" id="picker-selected-label"></div>
+      </div>
+
+      <label class="field-label" for="{{ form.motivo.id_for_label }}">Motivo</label>
+      {{ form.motivo }}
+
+      {% if form.non_field_errors or form.fecha.errors or form.hora.errors or form.motivo.errors %}
+        <p style="color:var(--dang);font-size:13px;margin-top:8px;">Complete todos los campos de la cita.</p>
+      {% endif %}
+
+      <button type="submit" class="btn btn-primary btn-block">Agendar cita</button>
+    </form>
+
+    <div class="card">
+      <h2 class="card-title">{{ citas_titulo }}</h2>
+      <p class="card-sub">{{ citas_sub }}</p>
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead>
+            <tr><th>Estudiante</th><th>Fecha</th><th>Hora</th><th>Motivo</th><th>Estado</th><th>Acción</th></tr>
+          </thead>
+          <tbody>
+            {% for c in mis_citas %}
+              <tr>
+                <td class="cell-strong">{{ c.estudiante.nombre }}</td>
+                <td>{{ c.fecha|date:"d/m/Y" }}</td>
+                <td>{{ c.hora }}</td>
+                <td class="cell-muted">{{ c.motivo }}</td>
+                <td><span class="{{ c.estado|badge_class }}">{{ c.estado }}</span></td>
+                <td>
+                  {% if is_est and c.estado == 'Agendada' %}
+                    <form method="post" action="{% url 'agenda_cancelar' c.pk %}" onsubmit="return confirm('¿Cancelar esta cita? Esta acción no se puede deshacer.');">
+                      {% csrf_token %}
+                      <button type="submit" class="btn-sm btn-sm-neutral">Cancelar</button>
+                    </form>
+                  {% else %}
+                    <span class="muted-dash">—</span>
+                  {% endif %}
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+        {% if not mis_citas %}<div class="empty-state">Aún no hay citas para mostrar.</div>{% endif %}
+      </div>
+    </div>
+  </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  var horasPorFecha = {{ horas_por_fecha_json|safe }};
+  var pickerDisponibilidad = {{ disponibilidad_json|safe }};
+  var pickerCitasAgendadas = {{ citas_agendadas_json|safe }};
+  var pickerHoras = {{ horas_json|safe }};
+</script>
+<script>
+  (function () {
+    var fechaSelect = document.getElementById('{{ form.fecha.id_for_label }}');
+    var horaSelect = document.getElementById('{{ form.hora.id_for_label }}');
+    if (!fechaSelect || !horaSelect) return;
+
+    function refreshHoraOptions() {
+      var horas = horasPorFecha[fechaSelect.value] || [];
+      horaSelect.innerHTML = '';
+      var placeholder = document.createElement('option');
+      placeholder.value = '';
+      placeholder.textContent = horas.length ? 'Seleccione hora' : 'No hay horas disponibles';
+      horaSelect.appendChild(placeholder);
+      horas.forEach(function (h) {
+        var opt = document.createElement('option');
+        opt.value = h;
+        opt.textContent = h;
+        horaSelect.appendChild(opt);
+      });
+    }
+    fechaSelect.addEventListener('change', refreshHoraOptions);
+
+    // Utilidades de fecha (equivalentes a las de app.js)
+    function isoDate(d) {
+      var y = d.getFullYear(), m = String(d.getMonth() + 1).padStart(2, '0'), day = String(d.getDate()).padStart(2, '0');
+      return y + '-' + m + '-' + day;
+    }
+    function lunes(d) {
+      var x = new Date(d);
+      var wd = x.getDay() === 0 ? 7 : x.getDay();
+      x.setDate(x.getDate() - wd + 1);
+      return isoDate(x);
+    }
+    function bonita(iso) {
+      if (!iso) return '';
+      var p = iso.split('-');
+      return p[2] + '/' + p[1] + '/' + p[0];
+    }
+    function wname(iso) {
+      var d = new Date(iso + 'T00:00:00');
+      return ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'][d.getDay()];
+    }
+    function diasSemana(isoLunes) {
+      var base = new Date(isoLunes + 'T00:00:00');
+      return [0, 1, 2, 3, 4].map(function (i) {
+        var d = new Date(base);
+        d.setDate(base.getDate() + i);
+        return isoDate(d);
+      });
+    }
+    function todayIso() { return isoDate(new Date()); }
+    function hasPar(list, fecha, hora) {
+      return list.some(function (p) { return p[0] === fecha && p[1] === hora; });
+    }
+
+    var pickerToggleBtn = document.getElementById('btn-toggle-picker');
+    var pickerPanel = document.getElementById('picker-panel');
+    var pickSemanaInput = document.getElementById('pickSemana');
+    var pickerOpen = false;
+    var pickSemana = lunes(new Date());
+
+    function esc(s) {
+      var div = document.createElement('div');
+      div.textContent = s == null ? '' : String(s);
+      return div.innerHTML;
+    }
+
+    function renderPicker() {
+      pickerPanel.hidden = !pickerOpen;
+      pickerToggleBtn.textContent = pickerOpen ? 'Cerrar calendario' : 'Abrir calendario';
+      if (!pickerOpen) return;
+      pickSemanaInput.value = pickSemana;
+      var today = todayIso();
+      var dias = diasSemana(pickSemana);
+      var agFecha = fechaSelect.value, agHora = horaSelect.value;
+
+      document.getElementById('picker-days').innerHTML = dias.map(function (f) {
+        return '<div class="grid-day-head"><div class="grid-day-name">' + esc(wname(f)) +
+          '</div><div class="grid-day-date">' + esc(bonita(f)) + '</div></div>';
+      }).join('');
+
+      document.getElementById('picker-rows').innerHTML = pickerHoras.map(function (hora) {
+        var cells = dias.map(function (fecha) {
+          var offered = hasPar(pickerDisponibilidad, fecha, hora);
+          var occupied = hasPar(pickerCitasAgendadas, fecha, hora);
+          var past = fecha < today;
+          var selected = agFecha === fecha && agHora === hora;
+          var cls, main, sub = '', clickAttrs = '';
+          if (!offered || past) { cls = 'is-empty'; main = '·'; }
+          else if (occupied) { cls = 'is-occupied'; main = 'Ocup.'; }
+          else if (selected) { cls = 'is-selected'; main = '✓'; sub = 'Elegido'; }
+          else { cls = 'is-available'; main = 'Libre'; clickAttrs = ' data-fecha="' + fecha + '" data-hora="' + hora + '"'; }
+          return '<div class="slot-cell ' + cls + '"' + clickAttrs + '>' + main + '<small>' + sub + '</small></div>';
+        }).join('');
+        return '<div class="picker-grid-row"><div class="grid-hour-cell">' + hora + '</div>' + cells + '</div>';
+      }).join('');
+
+      document.getElementById('picker-selected-label').innerHTML =
+        'Seleccionado: <b>' + esc((agFecha && agHora) ? (wname(agFecha) + ' ' + bonita(agFecha) + ' · ' + agHora) : 'Ninguna') + '</b>';
+    }
+
+    pickerToggleBtn.addEventListener('click', function () {
+      pickerOpen = !pickerOpen;
+      renderPicker();
+    });
+    pickSemanaInput.addEventListener('change', function () {
+      if (!pickSemanaInput.value) return;
+      pickSemana = lunes(new Date(pickSemanaInput.value + 'T00:00:00'));
+      renderPicker();
+    });
+    document.getElementById('btn-pick-prev').addEventListener('click', function () {
+      var d = new Date(pickSemana + 'T00:00:00');
+      d.setDate(d.getDate() - 7);
+      pickSemana = isoDate(d);
+      renderPicker();
+    });
+    document.getElementById('btn-pick-next').addEventListener('click', function () {
+      var d = new Date(pickSemana + 'T00:00:00');
+      d.setDate(d.getDate() + 7);
+      pickSemana = isoDate(d);
+      renderPicker();
+    });
+    document.getElementById('picker-rows').addEventListener('click', function (e) {
+      var cell = e.target.closest('[data-fecha]');
+      if (!cell) return;
+      fechaSelect.value = cell.dataset.fecha;
+      refreshHoraOptions();
+      horaSelect.value = cell.dataset.hora;
+      renderPicker();
+    });
+  })();
+</script>
+{% endblock %}
