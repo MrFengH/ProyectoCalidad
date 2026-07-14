@@ -86,6 +86,14 @@ class CerrarCicloForm(forms.Form):
     )
 
 
+class CancelarCitaForm(forms.Form):
+    """Cancela una cita: pide el motivo de la cancelación."""
+    motivo_cancelacion = forms.CharField(
+        label='Motivo de la cancelación',
+        widget=forms.Textarea(attrs={'class': 'field-textarea', 'placeholder': '¿Por qué se cancela esta cita?'}),
+    )
+
+
 class PsicologoCreateForm(forms.Form):
     nombre = forms.CharField(label='Nombre', max_length=150, widget=forms.TextInput(attrs={'class': 'field-input'}))
     cedula = forms.CharField(label='Cédula', max_length=20, widget=forms.TextInput(attrs={'class': 'field-input', 'placeholder': '8-000-000'}))

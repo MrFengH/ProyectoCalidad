@@ -284,6 +284,21 @@ textarea:focus {
 .badge-rol-psicologo { background: var(--infob); color: var(--info); }
 .badge-rol-estudiante { background: var(--okb); color: var(--ok); }
 
+.motivo-cancelacion {
+  display: block;
+  margin-top: 6px;
+  padding: 4px 8px;
+  border-radius: 5px;
+  background: #eef1f5;
+  color: #64748b;
+  font-size: 11.5px;
+  font-weight: 500;
+  max-width: 200px;
+  white-space: normal;
+  overflow-wrap: break-word;
+  word-break: break-word;
+}
+
 /* Sección de Inicio de Sesión y Registro (index.html) */
 .auth-page {
   min-height: 100vh;

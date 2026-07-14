@@ -74,13 +74,15 @@
                 <td>{{ c.fecha|date:"d/m/Y" }}</td>
                 <td>{{ c.hora }}</td>
                 <td class="cell-muted">{{ c.motivo }}</td>
-                <td><span class="{{ c.estado|badge_class }}">{{ c.estado }}</span></td>
+                <td>
+                  <span class="{{ c.estado|badge_class }}">{{ c.estado }}</span>
+                  {% if c.estado == 'Cancelada' and c.motivo_cancelacion %}
+                    <span class="motivo-cancelacion">{{ c.motivo_cancelacion }}</span>
+                  {% endif %}
+                </td>
                 <td>
                   {% if is_est and c.estado == 'Agendada' %}
-                    <form method="post" action="{% url 'agenda_cancelar' c.pk %}" onsubmit="return confirm('¿Cancelar esta cita? Esta acción no se puede deshacer.');">
-                      {% csrf_token %}
-                      <button type="submit" class="btn-sm btn-sm-neutral">Cancelar</button>
-                    </form>
+                    <a class="btn-sm btn-sm-neutral" href="{% url 'agenda_cancelar' c.pk %}">Cancelar</a>
                   {% else %}
                     <span class="muted-dash">—</span>
                   {% endif %}

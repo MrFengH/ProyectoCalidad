@@ -134,6 +134,7 @@ class Cita(models.Model):
     hora = models.CharField(max_length=5, choices=HORA_CHOICES)
     motivo = models.TextField(blank=True)
     estado = models.CharField(max_length=10, choices=ESTADO_CHOICES, default=ESTADO_AGENDADA)
+    motivo_cancelacion = models.TextField('motivo de la cancelación', blank=True)
     psicologo = models.ForeignKey(
         Usuario, on_delete=models.SET_NULL, related_name='citas_atendidas',
         limit_choices_to={'rol__in': ROLES_STAFF}, null=True, blank=True,

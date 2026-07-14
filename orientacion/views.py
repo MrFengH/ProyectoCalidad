@@ -10,8 +10,9 @@ from django.views.generic import FormView
 from . import services
 from .decorators import role_required
 from .forms import (
-    CerrarCicloForm, CitaEstudianteForm, CitaStaffForm, ExpedienteForm,
-    LoginForm, PsicologoCreateForm, RegistroEstudianteForm, RegistroForm,
+    CancelarCitaForm, CerrarCicloForm, CitaEstudianteForm, CitaStaffForm,
+    ExpedienteForm, LoginForm, PsicologoCreateForm, RegistroEstudianteForm,
+    RegistroForm,
 )
 from .models import (
     HORAS, ROL_DIRECTORA, ROL_ESTUDIANTE, ROLES_STAFF, Cita, Disponibilidad,
@@ -191,14 +192,22 @@ def agenda_view(request):
 
 @role_required('agenda')
 def agenda_cancelar_view(request, pk):
-    if request.method != 'POST':
-        return redirect('agenda')
     cita = get_object_or_404(Cita, pk=pk, estudiante=request.user)
-    if cita.estado == Cita.ESTADO_AGENDADA:
-        cita.estado = Cita.ESTADO_CANCELADA
-        cita.save(update_fields=['estado'])
-        messages.success(request, 'Cita cancelada')
-    return redirect('agenda')
+    if cita.estado != Cita.ESTADO_AGENDADA:
+        return redirect('agenda')
+    if request.method == 'POST':
+        form = CancelarCitaForm(request.POST)
+        if form.is_valid():
+            cita.estado = Cita.ESTADO_CANCELADA
+            cita.motivo_cancelacion = form.cleaned_data['motivo_cancelacion']
+            cita.save(update_fields=['estado', 'motivo_cancelacion'])
+            messages.success(request, 'Cita cancelada')
+            return redirect('agenda')
+    else:
+        form = CancelarCitaForm()
+    ctx = shell_context(request, 'agenda')
+    ctx.update({'cita': cita, 'form': form, 'volver_url': reverse_lazy('agenda')})
+    return render(request, 'orientacion/cancelar_cita.html', ctx)
 
 
 # ---------------------------------------------------------------------------
@@ -310,6 +319,7 @@ def gestion_citas_cerrar_view(request, pk):
                 cita=cita, estudiante=cita.estudiante, descripcion=form.cleaned_data['descripcion'],
                 psicologo=request.user,
             )
+            Disponibilidad.objects.filter(fecha=cita.fecha, hora=cita.hora).delete()
             messages.success(request, 'Cita atendida y registro creado')
             return redirect('gestion_citas')
     else:
@@ -321,14 +331,22 @@ def gestion_citas_cerrar_view(request, pk):
 
 @role_required('gestionCitas')
 def gestion_citas_cancelar_view(request, pk):
-    if request.method != 'POST':
-        return redirect('gestion_citas')
     cita = get_object_or_404(Cita, pk=pk)
-    if cita.estado == Cita.ESTADO_AGENDADA:
-        cita.estado = Cita.ESTADO_CANCELADA
-        cita.save(update_fields=['estado'])
-        messages.success(request, 'Cita cancelada')
-    return redirect('gestion_citas')
+    if cita.estado != Cita.ESTADO_AGENDADA:
+        return redirect('gestion_citas')
+    if request.method == 'POST':
+        form = CancelarCitaForm(request.POST)
+        if form.is_valid():
+            cita.estado = Cita.ESTADO_CANCELADA
+            cita.motivo_cancelacion = form.cleaned_data['motivo_cancelacion']
+            cita.save(update_fields=['estado', 'motivo_cancelacion'])
+            messages.success(request, 'Cita cancelada')
+            return redirect('gestion_citas')
+    else:
+        form = CancelarCitaForm()
+    ctx = shell_context(request, 'gestionCitas')
+    ctx.update({'cita': cita, 'form': form, 'volver_url': reverse_lazy('gestion_citas')})
+    return render(request, 'orientacion/cancelar_cita.html', ctx)
 
 
 # ---------------------------------------------------------------------------

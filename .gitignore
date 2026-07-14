@@ -1,4 +1,4 @@
-nano .gitignorenano .gitignorexx# Python
+# Python
 __pycache__/
 *.py[cod]
 *.pyo
@@ -12,8 +12,13 @@ media/
 
 # Virtualenv
 venv/
+.venv/
+env/
+
+# Variables locales
 .env
 .env.*
+local_settings.py
 
 # PythonAnywhere / local
 *.log
@@ -23,9 +28,4 @@ venv/
 
 # OS
 .DS_Store
-Thumbs.dbvenv/
-__pycache__/
-*.pyc
-db.sqlite3
-.env
-staticfiles/
+Thumbs.db

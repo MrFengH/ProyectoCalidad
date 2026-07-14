@@ -1,0 +1,24 @@
+{% extends 'orientacion/base.html' %}
+{% block title %}Cancelar cita · Orientación Psicológica{% endblock %}
+{% block content %}
+  <div class="modal-overlay" style="position:static;background:none;padding:0;">
+    <div class="modal-box" style="animation:none;">
+      <h2 class="modal-title">Cancelar cita</h2>
+      <p class="modal-line">Estudiante: <b class="text-ink">{{ cita.estudiante.nombre }}</b></p>
+      <p class="modal-line-sub">{{ cita.fecha|date:"d/m/Y" }} · {{ cita.hora }} — Motivo de la cita: {{ cita.motivo|default:"Sin motivo" }}</p>
+      <p class="modal-line-sub" style="color:var(--dang);">¿Confirma que desea cancelar esta cita? Esta acción no se puede deshacer.</p>
+      <form method="post">
+        {% csrf_token %}
+        <label class="field-label" for="{{ form.motivo_cancelacion.id_for_label }}">Motivo de la cancelación</label>
+        {{ form.motivo_cancelacion }}
+        {% if form.motivo_cancelacion.errors %}
+          <p style="color:var(--dang);font-size:13px;margin-top:6px;">Indique el motivo de la cancelación.</p>
+        {% endif %}
+        <div class="modal-actions">
+          <button type="submit" class="btn-confirm-ok danger">Confirmar cancelación</button>
+          <a href="{{ volver_url }}" class="btn-cancel-modal">Volver</a>
+        </div>
+      </form>
+    </div>
+  </div>
+{% endblock %}
