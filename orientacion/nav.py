@@ -14,6 +14,8 @@ NAV_DEFS = [
      'desc': 'Consulta el historial de cada estudiante'},
     {'id': 'registros', 'url': 'registros', 'label': 'Registros de atención',
      'desc': 'Documenta las atenciones brindadas'},
+    {'id': 'supervision', 'url': 'supervision', 'label': 'Psicólogos',
+     'desc': 'Consulta la información de cada psicólogo'},
     {'id': 'credenciales', 'url': 'credenciales', 'label': 'Credenciales',
      'desc': 'Gestiona las cuentas del personal'},
 ]
@@ -22,7 +24,7 @@ NAV_BY_ID = {n['id']: n for n in NAV_DEFS}
 BY_ROLE = {
     ROL_ESTUDIANTE: ['inicio', 'agenda'],
     ROL_PSICOLOGO: ['inicio', 'agenda', 'calendario', 'gestionCitas', 'expedientes', 'registros'],
-    ROL_DIRECTORA: ['inicio', 'agenda', 'calendario', 'gestionCitas', 'expedientes', 'registros', 'credenciales'],
+    ROL_DIRECTORA: ['inicio', 'supervision', 'credenciales'],
 }
 
 MODULE_TITLES = {
@@ -33,6 +35,7 @@ MODULE_TITLES = {
     'gestionCitas': {'t': 'Gestionar citas', 's': 'Atiende o cancela las citas registradas.'},
     'expedientes': {'t': 'Expedientes de estudiantes', 's': 'Datos, historial de citas y notas de atención de cada estudiante.'},
     'registros': {'t': 'Registros de atención', 's': 'Historial de atenciones que cierran el ciclo de cada cita.'},
+    'supervision': {'t': 'Psicólogos', 's': 'Consulta el perfil, las citas, los registros y la disponibilidad de cada psicólogo.'},
     'credenciales': {'t': 'Credenciales', 's': 'Genera cuentas de acceso para el personal de psicología.'},
 }
 

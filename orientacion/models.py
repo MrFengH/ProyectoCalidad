@@ -89,6 +89,11 @@ class Expediente(models.Model):
         Usuario, on_delete=models.CASCADE, related_name='expediente',
         limit_choices_to={'rol': ROL_ESTUDIANTE},
     )
+    psicologo_asignado = models.ForeignKey(
+        Usuario, on_delete=models.SET_NULL, related_name='expedientes_asignados',
+        limit_choices_to={'rol': ROL_PSICOLOGO}, null=True, blank=True,
+        verbose_name='psicólogo asignado',
+    )
     telefono = models.CharField('teléfono', max_length=30, blank=True)
     notas = models.TextField('notas del orientador', blank=True)
     actualizado = models.DateTimeField(auto_now=True)

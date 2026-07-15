@@ -3,6 +3,25 @@
 {% block title %}Agendar cita · Orientación Psicológica{% endblock %}
 {% block content %}
   <div class="agenda-grid">
+    <div class="agenda-left">
+    {% if is_est and psicologo_asignado %}
+      <div class="psic-asignado-box">
+        <div class="psic-asignado-avatar">{{ psicologo_asignado.nombre|initial }}</div>
+        <div>
+          <div class="psic-asignado-label">Tu psicólogo asignado</div>
+          <div class="psic-asignado-name">{{ psicologo_asignado.nombre }}</div>
+        </div>
+      </div>
+    {% endif %}
+
+    {% if sin_psicologo %}
+      <div class="card">
+        <h2 class="card-title">Nueva cita</h2>
+        <div class="empty-state">
+          Todavía no tienes un psicólogo asignado. Por favor contacta a la dirección para que te asignen uno antes de poder agendar una cita.
+        </div>
+      </div>
+    {% else %}
     <form class="card" method="post" action="{% url 'agenda' %}" novalidate id="form-agendar">
       {% csrf_token %}
       <h2 class="card-title">Nueva cita</h2>
@@ -58,6 +77,8 @@
 
       <button type="submit" class="btn btn-primary btn-block">Agendar cita</button>
     </form>
+    {% endif %}
+    </div>
 
     <div class="card">
       <h2 class="card-title">{{ citas_titulo }}</h2>
@@ -65,7 +86,7 @@
       <div class="table-wrap">
         <table class="data-table">
           <thead>
-            <tr><th>Estudiante</th><th>Fecha</th><th>Hora</th><th>Motivo</th><th>Estado</th><th>Acción</th></tr>
+            <tr><th>Estudiante</th><th>Fecha</th><th>Hora</th><th>Psicólogo</th><th>Motivo</th><th>Estado</th><th>Acción</th></tr>
           </thead>
           <tbody>
             {% for c in mis_citas %}
@@ -73,6 +94,7 @@
                 <td class="cell-strong">{{ c.estudiante.nombre }}</td>
                 <td>{{ c.fecha|date:"d/m/Y" }}</td>
                 <td>{{ c.hora }}</td>
+                <td class="cell-muted">{{ c.psicologo.nombre|default:"Sin asignar" }}</td>
                 <td class="cell-muted">{{ c.motivo }}</td>
                 <td>
                   <span class="{{ c.estado|badge_class }}">{{ c.estado }}</span>

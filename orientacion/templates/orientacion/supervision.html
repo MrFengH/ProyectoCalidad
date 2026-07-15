@@ -1,0 +1,116 @@
+{% extends 'orientacion/base.html' %}
+{% load orientacion_extras %}
+{% block title %}Psicólogos · Orientación Psicológica{% endblock %}
+{% block content %}
+  <div class="exp-layout">
+    <div class="card exp-list-card">
+      <h2 class="card-title">Psicólogos</h2>
+      <div class="exp-list">
+        {% for p in lista %}
+          <a class="exp-item{% if seleccionado and p.cedula == seleccionado.cedula %} active{% endif %}" href="{% url 'supervision_detalle' p.cedula %}">
+            <div class="exp-item-name">{{ p.nombre }}</div>
+            <div class="exp-item-meta">{{ p.n_asignados }} estudiantes asignados · {{ p.n_citas }} citas · {{ p.n_disp }} horarios ofrecidos</div>
+          </a>
+        {% endfor %}
+      </div>
+      {% if not lista %}<div class="empty-state">No hay psicólogos registrados aún.</div>{% endif %}
+    </div>
+
+    <div>
+      {% if seleccionado %}
+        <div class="card exp-detail-card">
+          <div class="exp-detail-head">
+            <div>
+              <h2>{{ seleccionado.nombre }}</h2>
+              <div class="exp-detail-head-ced">Cédula {{ seleccionado.cedula }} · {{ seleccionado.correo|default:"Sin correo registrado" }}</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card section-spaced">
+          <div class="week-toolbar">
+            <div>
+              <h2 class="card-title">Disponibilidad</h2>
+              <p class="card-sub-flat">Horas disponibles de {{ seleccionado.nombre }}.</p>
+            </div>
+            <div class="week-toolbar-actions">
+              <form method="get" action="{% url 'supervision_detalle' seleccionado.cedula %}" style="display:inline-flex;gap:8px;align-items:center;">
+                <input type="date" name="semana" class="week-date-input" value="{{ semana|date:'Y-m-d' }}" onchange="this.form.submit()">
+              </form>
+              <a class="btn-nav-arrow" href="{% url 'supervision_detalle' seleccionado.cedula %}?semana={{ semana_prev|date:'Y-m-d' }}">‹ Anterior</a>
+              <a class="btn-nav-arrow" href="{% url 'supervision_detalle' seleccionado.cedula %}?semana={{ semana_next|date:'Y-m-d' }}">Siguiente ›</a>
+            </div>
+          </div>
+          <div class="week-grid">
+            <div class="week-grid-head">
+              <div class="grid-hour-label">Hora</div>
+              <div class="grid-days-slot">
+                {% for d in dias %}
+                  <div class="grid-day-head"><div class="grid-day-name">{{ d|date:"D" }}</div><div class="grid-day-date">{{ d|date:"d/m/Y" }}</div></div>
+                {% endfor %}
+              </div>
+            </div>
+            {% for fila in filas %}
+              <div class="week-grid-row">
+                <div class="grid-hour-cell">{{ fila.hora }}</div>
+                {% for celda in fila.celdas %}
+                  {% if celda.ocupada %}
+                    <div class="slot-cell is-occupied">Ocupada<small>Cita</small></div>
+                  {% elif celda.disponible %}
+                    <div class="slot-cell is-available">Disponible<small>Libre</small></div>
+                  {% else %}
+                    <div class="slot-cell is-empty">—</div>
+                  {% endif %}
+                {% endfor %}
+              </div>
+            {% endfor %}
+          </div>
+        </div>
+
+        <div class="exp-columns">
+          <div class="card">
+            <h3 class="card-title">Citas</h3>
+            {% for c in citas %}
+              <div class="history-item">
+                <div>
+                  <div class="history-date">{{ c.fecha|date:"d/m/Y" }} · {{ c.hora }} · {{ c.estudiante.nombre }}</div>
+                  <div class="history-motivo">{{ c.motivo }}</div>
+                </div>
+                <span class="{{ c.estado|badge_class }}">{{ c.estado }}</span>
+              </div>
+            {% endfor %}
+            {% if not citas %}<div class="empty-state">Sin citas registradas.</div>{% endif %}
+          </div>
+
+          <div class="card">
+            <h3 class="card-title">Registros de atención</h3>
+            {% for r in registros %}
+              <div class="record-item">
+                <div class="record-meta">{{ r.fecha|date:"d/m/Y H:i" }} · {{ r.estudiante.nombre }}</div>
+                <div class="record-desc">{{ r.descripcion }}</div>
+              </div>
+            {% endfor %}
+            {% if not registros %}<div class="empty-state">Sin atenciones registradas.</div>{% endif %}
+          </div>
+        </div>
+
+        <div class="card">
+          <h3 class="card-title-tight">Estudiantes relacionados</h3>
+          <div class="table-wrap">
+            <table class="data-table">
+              <thead><tr><th>Nombre</th><th>Cédula</th></tr></thead>
+              <tbody>
+                {% for e in estudiantes %}
+                  <tr><td class="cell-strong">{{ e.nombre }}</td><td>{{ e.cedula }}</td></tr>
+                {% endfor %}
+              </tbody>
+            </table>
+            {% if not estudiantes %}<div class="empty-state">Sin estudiantes relacionados.</div>{% endif %}
+          </div>
+        </div>
+      {% else %}
+        <div class="card exp-empty">Selecciona un psicólogo para ver su información.</div>
+      {% endif %}
+    </div>
+  </div>
+{% endblock %}

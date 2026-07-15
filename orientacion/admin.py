@@ -26,7 +26,8 @@ class UsuarioAdmin(UserAdmin):
 
 @admin.register(Expediente)
 class ExpedienteAdmin(admin.ModelAdmin):
-    list_display = ['estudiante', 'telefono', 'actualizado']
+    list_display = ['estudiante', 'psicologo_asignado', 'telefono', 'actualizado']
+    list_filter = ['psicologo_asignado']
     search_fields = ['estudiante__nombre', 'estudiante__cedula']
 
 

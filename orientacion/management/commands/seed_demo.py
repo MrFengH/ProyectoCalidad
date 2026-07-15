@@ -3,6 +3,7 @@ import datetime
 from django.core.management.base import BaseCommand
 from django.db import transaction
 
+from orientacion import services
 from orientacion.models import Cita, Disponibilidad, Expediente, Registro, Usuario
 
 
@@ -14,7 +15,10 @@ class Command(BaseCommand):
         directora, creada = self._crear_usuario('8-100-100', 'Ana Rodríguez', 'directora', 'dir123', 'ana.rodriguez@colegio.edu')
         psicologo, _ = self._crear_usuario('8-200-200', 'Carlos Méndez', 'psicologo', 'psi123', 'carlos.mendez@colegio.edu')
         estudiante, _ = self._crear_usuario('8-300-300', 'María Pérez', 'estudiante', 'est123', 'maria.perez@colegio.edu')
-        Expediente.objects.get_or_create(estudiante=estudiante, defaults={'telefono': '6000-0000'})
+        expediente, exp_creado = Expediente.objects.get_or_create(
+            estudiante=estudiante, defaults={'telefono': '6000-0000'})
+        if exp_creado:
+            services.asignar_psicologo_aleatorio(expediente)
 
         if Disponibilidad.objects.exists():
             self.stdout.write(self.style.WARNING('Ya existe disponibilidad; no se generan más datos de horario.'))

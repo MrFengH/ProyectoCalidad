@@ -25,6 +25,9 @@ urlpatterns = [
 
     path('registros/', views.registros_view, name='registros'),
 
+    path('psicologos/', views.supervision_view, name='supervision'),
+    path('psicologos/<str:cedula>/', views.supervision_view, name='supervision_detalle'),
+
     path('credenciales/', views.credenciales_view, name='credenciales'),
     path('credenciales/<int:pk>/eliminar/', views.credenciales_eliminar_view, name='credenciales_eliminar'),
 ]

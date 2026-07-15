@@ -15,8 +15,8 @@ from .forms import (
     RegistroForm,
 )
 from .models import (
-    HORAS, ROL_DIRECTORA, ROL_ESTUDIANTE, ROLES_STAFF, Cita, Disponibilidad,
-    Expediente, Registro, Usuario,
+    HORAS, ROL_DIRECTORA, ROL_ESTUDIANTE, ROL_PSICOLOGO, ROLES_STAFF, Cita,
+    Disponibilidad, Expediente, Registro, Usuario,
 )
 from .nav import nav_items_for, page_title
 
@@ -52,7 +52,9 @@ class RegistroEstudianteView(FormView):
             cedula=data['cedula'], nombre=data['nombre'], password=data['password'],
             rol=ROL_ESTUDIANTE, correo=data['correo'],
         )
-        Expediente.objects.get_or_create(estudiante=usuario)
+        expediente, exp_created = Expediente.objects.get_or_create(estudiante=usuario)
+        if exp_created:
+            services.asignar_psicologo_aleatorio(expediente)
         messages.success(self.request, 'Cuenta creada. Ya puedes iniciar sesión.')
         return redirect('login')
 
@@ -117,12 +119,12 @@ def inicio_view(request):
 # Agendar cita
 # ---------------------------------------------------------------------------
 
-def _slot_choices(hoy):
-    fechas = services.fechas_con_cupo(hoy)
+def _slot_choices(hoy, psicologo=None):
+    fechas = services.fechas_con_cupo(hoy, psicologo=psicologo)
     fecha_choices = [('', 'Seleccione una fecha')] + [
         (f.isoformat(), f'{services.wname(f)} {f.strftime("%d/%m/%Y")}') for f in fechas
     ]
-    horas_por_fecha = {f.isoformat(): services.free_horas(f) for f in fechas}
+    horas_por_fecha = {f.isoformat(): services.free_horas(f, psicologo=psicologo) for f in fechas}
     return fecha_choices, horas_por_fecha
 
 
@@ -131,7 +133,17 @@ def agenda_view(request):
     user = request.user
     is_est = user.rol == ROL_ESTUDIANTE
     hoy = datetime.date.today()
-    fecha_choices, horas_por_fecha = _slot_choices(hoy)
+
+    psicologo_asignado = None
+    if is_est:
+        expediente = Expediente.objects.filter(estudiante=user).first()
+        psicologo_asignado = expediente.psicologo_asignado if expediente else None
+    sin_psicologo = is_est and psicologo_asignado is None
+
+    if sin_psicologo:
+        fecha_choices, horas_por_fecha = [('', 'Seleccione una fecha')], {}
+    else:
+        fecha_choices, horas_por_fecha = _slot_choices(hoy, psicologo=psicologo_asignado if is_est else None)
 
     fecha_sel = request.POST.get('fecha') or request.GET.get('fecha') or ''
     hora_choices = [('', 'Seleccione fecha primero')]
@@ -140,21 +152,29 @@ def agenda_view(request):
 
     form_class = CitaEstudianteForm if is_est else CitaStaffForm
 
-    if request.method == 'POST':
+    if sin_psicologo:
+        form = form_class(fechas=fecha_choices, horas=hora_choices)
+        if request.method == 'POST':
+            messages.error(request, 'Todavía no tienes un psicólogo asignado; no puedes agendar una cita.')
+    elif request.method == 'POST':
         form = form_class(request.POST, fechas=fecha_choices, horas=hora_choices)
         if form.is_valid():
             fecha = datetime.date.fromisoformat(form.cleaned_data['fecha'])
             hora = form.cleaned_data['hora']
             motivo = form.cleaned_data['motivo']
-            if hora not in services.free_horas(fecha):
+            if hora not in services.free_horas(fecha, psicologo=psicologo_asignado if is_est else None):
                 messages.error(request, 'Ese horario ya está ocupado.')
             else:
                 if is_est:
                     estudiante = user
+                    psicologo_cita = psicologo_asignado
                 else:
                     estudiante = services.get_or_create_estudiante(
                         form.cleaned_data['cedula'].strip(), form.cleaned_data['nombre'].strip())
-                Cita.objects.create(estudiante=estudiante, fecha=fecha, hora=hora, motivo=motivo)
+                    expediente_est, _ = Expediente.objects.get_or_create(estudiante=estudiante)
+                    psicologo_cita = expediente_est.psicologo_asignado
+                Cita.objects.create(
+                    estudiante=estudiante, fecha=fecha, hora=hora, motivo=motivo, psicologo=psicologo_cita)
                 messages.success(request, 'Cita agendada correctamente')
                 return redirect('agenda')
         else:
@@ -163,14 +183,16 @@ def agenda_view(request):
         form = form_class(fechas=fecha_choices, horas=hora_choices, initial={'fecha': fecha_sel})
 
     if is_est:
-        mis_citas = Cita.objects.filter(estudiante=user).order_by('fecha', 'hora')
+        mis_citas = Cita.objects.select_related('psicologo').filter(estudiante=user).order_by('fecha', 'hora')
         citas_titulo, citas_sub = 'Mis citas', 'Todas tus citas agendadas y atendidas.'
     else:
-        mis_citas = Cita.objects.filter(estado=Cita.ESTADO_AGENDADA).order_by('fecha', 'hora')
+        mis_citas = Cita.objects.select_related('psicologo').filter(estado=Cita.ESTADO_AGENDADA).order_by('fecha', 'hora')
         citas_titulo, citas_sub = 'Próximas citas', 'Citas activas ordenadas por fecha.'
 
-    disponibilidad_json = json.dumps(
-        [[f.isoformat(), h] for f, h in Disponibilidad.objects.values_list('fecha', 'hora')])
+    disp_qs = Disponibilidad.objects.all()
+    if is_est:
+        disp_qs = disp_qs.filter(psicologo=psicologo_asignado) if psicologo_asignado else Disponibilidad.objects.none()
+    disponibilidad_json = json.dumps([[f.isoformat(), h] for f, h in disp_qs.values_list('fecha', 'hora')])
     citas_agendadas_json = json.dumps(
         [[f.isoformat(), h] for f, h in
          Cita.objects.filter(estado=Cita.ESTADO_AGENDADA).values_list('fecha', 'hora')])
@@ -186,6 +208,8 @@ def agenda_view(request):
         'disponibilidad_json': disponibilidad_json,
         'citas_agendadas_json': citas_agendadas_json,
         'horas_json': json.dumps(HORAS),
+        'psicologo_asignado': psicologo_asignado,
+        'sin_psicologo': sin_psicologo,
     })
     return render(request, 'orientacion/agenda.html', ctx)
 
@@ -224,25 +248,13 @@ def calendario_view(request):
     lunes = services.lunes(ref)
     dias = services.dias_semana(lunes)
 
-    citas_ocupadas = set(
-        Cita.objects.filter(fecha__in=dias, estado=Cita.ESTADO_AGENDADA).values_list('fecha', 'hora'))
-    disp_set = set(Disponibilidad.objects.filter(fecha__in=dias).values_list('fecha', 'hora'))
-
-    filas = []
-    for hora in HORAS:
-        celdas = []
-        for f in dias:
-            ocupada = (f, hora) in citas_ocupadas
-            disponible = (f, hora) in disp_set
-            celdas.append({'fecha': f, 'hora': hora, 'ocupada': ocupada, 'disponible': disponible})
-        filas.append({'hora': hora, 'celdas': celdas})
+    filas = services.week_grid(dias, Disponibilidad.objects.all())
 
     citas_ocupadas_all = set(Cita.objects.filter(estado=Cita.ESTADO_AGENDADA).values_list('fecha', 'hora'))
-    disp_list_qs = Disponibilidad.objects.order_by('fecha', 'hora')
     disp_list = [{
         'obj': d, 'fecha': d.fecha, 'hora': d.hora,
         'ocupada': (d.fecha, d.hora) in citas_ocupadas_all,
-    } for d in disp_list_qs]
+    } for d in Disponibilidad.objects.order_by('fecha', 'hora')]
 
     ctx = shell_context(request, 'calendario')
     ctx.update({
@@ -428,6 +440,55 @@ def registros_view(request):
     ctx = shell_context(request, 'registros')
     ctx.update({'form': form, 'registros': registros, 'editando': editando})
     return render(request, 'orientacion/registros.html', ctx)
+
+
+# ---------------------------------------------------------------------------
+# Supervisión (consulta de solo lectura para la directora)
+# ---------------------------------------------------------------------------
+
+@role_required('supervision')
+def supervision_view(request, cedula=None):
+    psicologos = Usuario.objects.filter(rol=ROL_PSICOLOGO).order_by('nombre')
+    lista = [{
+        'cedula': p.cedula, 'nombre': p.nombre,
+        'n_citas': Cita.objects.filter(psicologo=p).count(),
+        'n_disp': Disponibilidad.objects.filter(psicologo=p).count(),
+        'n_asignados': Expediente.objects.filter(psicologo_asignado=p).count(),
+    } for p in psicologos]
+
+    seleccionado = None
+    citas, registros, estudiantes, filas, disp_list, dias = [], [], [], [], [], []
+    semana = semana_prev = semana_next = None
+
+    if cedula:
+        seleccionado = get_object_or_404(Usuario, cedula=cedula, rol=ROL_PSICOLOGO)
+
+        semana_param = request.GET.get('semana')
+        try:
+            ref = datetime.date.fromisoformat(semana_param) if semana_param else datetime.date.today()
+        except ValueError:
+            ref = datetime.date.today()
+        semana = services.lunes(ref)
+        dias = services.dias_semana(semana)
+        semana_prev = semana - datetime.timedelta(days=7)
+        semana_next = semana + datetime.timedelta(days=7)
+
+        disp_qs = Disponibilidad.objects.filter(psicologo=seleccionado)
+        filas = services.week_grid(dias, disp_qs)
+        disp_list = services.disp_list_for(disp_qs)
+
+        citas = services.citas_de_psicologo(seleccionado)
+        registros = Registro.objects.filter(psicologo=seleccionado).select_related('estudiante').order_by('-fecha')
+        estudiantes = services.estudiantes_de_psicologo(seleccionado, citas)
+
+    ctx = shell_context(request, 'supervision')
+    ctx.update({
+        'lista': lista, 'seleccionado': seleccionado,
+        'citas': citas, 'registros': registros, 'estudiantes': estudiantes,
+        'dias': dias, 'filas': filas, 'disp_list': disp_list,
+        'semana': semana, 'semana_prev': semana_prev, 'semana_next': semana_next,
+    })
+    return render(request, 'orientacion/supervision.html', ctx)
 
 
 # ---------------------------------------------------------------------------
