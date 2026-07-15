@@ -754,11 +754,35 @@ textarea:focus {
   display: flex;
   align-items: center;
   gap: 12px;
+  width: 100%;
   background: linear-gradient(135deg, #efe9fc 0%, #f6f3fd 100%);
   border: 1.5px solid rgba(124, 58, 237, .35);
   border-radius: 6px;
   padding: 14px 16px;
   box-shadow: var(--shadow-card), 0 0 0 3px rgba(124, 58, 237, .06);
+  appearance: none;
+  cursor: pointer;
+  font-family: inherit;
+  text-align: left;
+  transition: box-shadow .15s ease, transform .15s ease;
+}
+
+.psic-asignado-box:hover {
+  box-shadow: var(--shadow-card), 0 0 0 3px rgba(124, 58, 237, .12);
+  transform: translateY(-1px);
+}
+
+.psic-asignado-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.psic-asignado-change {
+  flex-shrink: 0;
+  color: var(--brand);
+  font-size: 12.5px;
+  font-weight: 700;
+  white-space: nowrap;
 }
 
 .psic-asignado-avatar {
@@ -1186,6 +1210,10 @@ textarea:focus {
   z-index: 900;
 }
 
+.modal-overlay[hidden] {
+  display: none;
+}
+
 .modal-overlay.confirm-overlay {
   background: rgba(42, 23, 71, .5);
   z-index: 950;
@@ -1274,6 +1302,42 @@ textarea:focus {
   font-size: 14px;
   padding: 12px 18px;
   border-radius: 6px;
+}
+
+.psic-select-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 320px;
+  overflow-y: auto;
+  margin: 4px 0 0;
+}
+
+.psic-select-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  background: #faf8fe;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 10px 12px;
+}
+
+.psic-select-name {
+  font-weight: 700;
+  font-size: 14px;
+}
+
+.psic-select-meta {
+  color: var(--muted);
+  font-size: 12.5px;
+  margin-top: 2px;
+}
+
+.btn-sm[disabled] {
+  cursor: not-allowed;
+  opacity: .55;
 }
 
 /* Sección de Notificaciones (toasts) */

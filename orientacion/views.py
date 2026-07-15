@@ -2,9 +2,11 @@ import datetime
 import json
 
 from django.contrib import messages
+from django.contrib.auth.decorators import login_required
 from django.contrib.auth.views import LoginView, LogoutView
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse_lazy
+from django.views.decorators.http import require_POST
 from django.views.generic import FormView
 
 from . import services
@@ -210,8 +212,30 @@ def agenda_view(request):
         'horas_json': json.dumps(HORAS),
         'psicologo_asignado': psicologo_asignado,
         'sin_psicologo': sin_psicologo,
+        'psicologos_disponibles': (
+            Usuario.objects.filter(rol=ROL_PSICOLOGO, is_active=True).order_by('nombre') if is_est else None),
     })
     return render(request, 'orientacion/agenda.html', ctx)
+
+
+@login_required
+@require_POST
+def agenda_cambiar_psicologo_view(request):
+    """El estudiante elige o cambia su propio psicólogo asignado desde la Agenda."""
+    if request.user.rol != ROL_ESTUDIANTE:
+        return redirect('inicio')
+
+    psicologo = Usuario.objects.filter(
+        pk=request.POST.get('psicologo_id'), rol=ROL_PSICOLOGO, is_active=True).first()
+    if not psicologo:
+        messages.error(request, 'Selecciona un psicólogo válido de la lista.')
+        return redirect('agenda')
+
+    expediente, _ = Expediente.objects.get_or_create(estudiante=request.user)
+    expediente.psicologo_asignado = psicologo
+    expediente.save(update_fields=['psicologo_asignado'])
+    messages.success(request, f'Tu psicólogo asignado ahora es {psicologo.nombre}.')
+    return redirect('agenda')
 
 
 @role_required('agenda')

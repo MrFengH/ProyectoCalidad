@@ -11,6 +11,7 @@ urlpatterns = [
 
     path('agenda/', views.agenda_view, name='agenda'),
     path('agenda/cancelar/<int:pk>/', views.agenda_cancelar_view, name='agenda_cancelar'),
+    path('agenda/cambiar-psicologo/', views.agenda_cambiar_psicologo_view, name='agenda_cambiar_psicologo'),
 
     path('calendario/', views.calendario_view, name='calendario'),
     path('calendario/toggle/', views.calendario_toggle_view, name='calendario_toggle'),

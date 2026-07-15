@@ -4,14 +4,20 @@
 {% block content %}
   <div class="agenda-grid">
     <div class="agenda-left">
-    {% if is_est and psicologo_asignado %}
-      <div class="psic-asignado-box">
-        <div class="psic-asignado-avatar">{{ psicologo_asignado.nombre|initial }}</div>
-        <div>
-          <div class="psic-asignado-label">Tu psicólogo asignado</div>
-          <div class="psic-asignado-name">{{ psicologo_asignado.nombre }}</div>
+    {% if is_est %}
+      <button type="button" class="psic-asignado-box" id="btn-open-psic-modal">
+        <div class="psic-asignado-avatar">{{ psicologo_asignado.nombre|default:"?"|initial }}</div>
+        <div class="psic-asignado-text">
+          {% if psicologo_asignado %}
+            <div class="psic-asignado-label">Tu psicólogo asignado</div>
+            <div class="psic-asignado-name">{{ psicologo_asignado.nombre }}</div>
+          {% else %}
+            <div class="psic-asignado-label">No tienes psicólogo asignado</div>
+            <div class="psic-asignado-name">Elige uno para poder agendar</div>
+          {% endif %}
         </div>
-      </div>
+        <span class="psic-asignado-change">{% if psicologo_asignado %}Cambiar psicólogo{% else %}Elegir psicólogo{% endif %} ›</span>
+      </button>
     {% endif %}
 
     {% if sin_psicologo %}
@@ -117,6 +123,38 @@
       </div>
     </div>
   </div>
+
+  {% if is_est %}
+    <div class="modal-overlay" id="psic-modal-overlay" hidden>
+      <div class="modal-box">
+        <h2 class="modal-title">Elige tu psicólogo</h2>
+        <p class="modal-line-sub">Selecciona el psicólogo que te acompañará en tus próximas citas.</p>
+        <div class="psic-select-list">
+          {% for p in psicologos_disponibles %}
+            <form method="post" action="{% url 'agenda_cambiar_psicologo' %}" class="psic-select-item">
+              {% csrf_token %}
+              <input type="hidden" name="psicologo_id" value="{{ p.pk }}">
+              <div>
+                <div class="psic-select-name">{{ p.nombre }}</div>
+                <div class="psic-select-meta">Cédula {{ p.cedula }}{% if p.correo %} · {{ p.correo }}{% endif %}</div>
+              </div>
+              {% if psicologo_asignado and psicologo_asignado.pk == p.pk %}
+                <button type="submit" class="btn-sm btn-sm-neutral" disabled>Actual</button>
+              {% else %}
+                <button type="submit" class="btn-sm btn-sm-ok">Seleccionar</button>
+              {% endif %}
+            </form>
+          {% endfor %}
+          {% if not psicologos_disponibles %}
+            <div class="empty-state">No hay psicólogos disponibles en este momento.</div>
+          {% endif %}
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="btn-cancel-modal" id="btn-close-psic-modal">Cerrar</button>
+        </div>
+      </div>
+    </div>
+  {% endif %}
 {% endblock %}
 
 {% block extra_js %}
@@ -255,6 +293,26 @@
       refreshHoraOptions();
       horaSelect.value = cell.dataset.hora;
       renderPicker();
+    });
+  })();
+</script>
+<script>
+  (function () {
+    var openBtn = document.getElementById('btn-open-psic-modal');
+    var overlay = document.getElementById('psic-modal-overlay');
+    var closeBtn = document.getElementById('btn-close-psic-modal');
+    if (!openBtn || !overlay) return;
+
+    function open() { overlay.hidden = false; }
+    function close() { overlay.hidden = true; }
+
+    openBtn.addEventListener('click', open);
+    if (closeBtn) closeBtn.addEventListener('click', close);
+    overlay.addEventListener('click', function (e) {
+      if (e.target === overlay) close();
+    });
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape' && !overlay.hidden) close();
     });
   })();
 </script>
